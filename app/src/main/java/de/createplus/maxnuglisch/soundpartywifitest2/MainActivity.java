@@ -4,14 +4,19 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -24,9 +29,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.*;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.LinkedList;
 
 
 import de.createplus.maxnuglisch.soundpartywifitest2.permissionMngr.PermissionManager;
@@ -47,8 +56,8 @@ public class MainActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getClientList();
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+
+                Snackbar.make(view, "Divices: ", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
@@ -99,41 +108,45 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    public void getClientList2 (){
+        int portNumber = 90001;
 
-    public void getClientList() {
-        int macCount = 0;
-        BufferedReader br = null;
+        ServerSocket serverSocket = null;
+        try {
+            serverSocket = new ServerSocket(portNumber);
+            Socket clientSocket = serverSocket.accept();
+            PrintWriter out =
+                    new PrintWriter(clientSocket.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(clientSocket.getInputStream()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public LinkedList<String[]> getClientList() {
+        LinkedList<String[]> clients = new LinkedList<>();
+        BufferedReader br;
         try {
             br = new BufferedReader(new FileReader("/proc/net/arp"));
             String line;
             while ((line = br.readLine()) != null) {
                 String[] splitted = line.split(" +");
-                if (splitted != null ) {
-                    // Basic sanity check
-                    String mac = splitted[3];
-                    System.out.println("Mac : Outside If "+ mac );
-                    if (mac.matches("..:..:..:..:..:..")) {
-                        macCount++;
-                   /* ClientList.add("Client(" + macCount + ")");
-                    IpAddr.add(splitted[0]);
-                    HWAddr.add(splitted[3]);
-                    Device.add(splitted[5]);*/
-                        System.out.println("Mac : "+ mac + " IP Address : "+splitted[0] );
-                        System.out.println("Mac_Count  " + macCount + " MAC_ADDRESS  "+ mac);
-                        Toast.makeText(
-                                getApplicationContext(),
-                                "Mac_Count  " + macCount + "   MAC_ADDRESS  "
-                                        + mac, Toast.LENGTH_SHORT).show();
 
-                    }
-                for (int i = 0; i < splitted.length; i++)
-                    Log.e("HOTSPOT","Address"+ splitted[i]);
+                //Log.e("HOTSPOT","Address"+ splitted[0]);
+                if(splitted[0].matches("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")){
+                    String[] client = new String[3];
+                    client[0] = splitted[0];//IP
+                    client[1] = splitted[3];//MAC
+                    client[2] = splitted[0];//WIFI
+                    clients.add(client);
+                }
 
                 }
-            }
+
         } catch(Exception e) {
 
         }
+        return clients;
     }
 
 
