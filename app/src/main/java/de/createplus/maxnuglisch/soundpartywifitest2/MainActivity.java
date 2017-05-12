@@ -4,19 +4,15 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.os.StrictMode;
 import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
-import android.support.design.widget.TabLayout;
-import android.text.format.Formatter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -27,27 +23,43 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+import android.widget.Button;
+import android.widget.TextView;
 
 import java.io.*;
 import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.LinkedList;
 
 
+import de.createplus.maxnuglisch.soundpartywifitest2.backgroundservices.ScanNetwork;
+import de.createplus.maxnuglisch.soundpartywifitest2.backgroundservices.ScanNetworkReciever;
 import de.createplus.maxnuglisch.soundpartywifitest2.permissionMngr.PermissionManager;
 import de.createplus.maxnuglisch.soundpartywifitest2.permissionMngr.PermissionRequest;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     private PermissionManager permissionManager;
+    public static String view = "----";
+    public static  boolean isServer = false;
+    public void updateContainerContent(String text){
+        TextView textbox = (TextView) findViewById(R.id.textbox);
+        textbox.setText(text);
+        Log.e("HI","ICH BIN HIER ANGEKOMMEN");
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
+
+        IntentFilter statusIntentFilterPlanData = new IntentFilter(
+                ScanNetwork.Constants.BROADCAST_ACTION);
+
+        ScanNetworkReciever ScanNetworkReciever =
+                new ScanNetworkReciever(this);
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                ScanNetworkReciever,
+                statusIntentFilterPlanData);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -55,10 +67,10 @@ public class MainActivity extends AppCompatActivity
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-
-                Snackbar.make(view, "Divices: ", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            public void onClick(View v) {
+                getClientList2();
+                /*Snackbar.make(v, "Divices: "+MainActivity.view, Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();*/
             }
         });
 
@@ -104,24 +116,23 @@ public class MainActivity extends AppCompatActivity
         };
         permissionManager.requestPermission(request,this);
         permissionManager.requestPermission(request2,this);
+        Button btn = (Button) findViewById(R.id.button);
+        btn.setText("Client");
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                isServer = true;
+                Button btn = (Button) findViewById(R.id.button);
+                btn.setText("Server");
+            }
+        });
         //configApState(this);
-
     }
 
     public void getClientList2 (){
-        int portNumber = 90001;
-
-        ServerSocket serverSocket = null;
-        try {
-            serverSocket = new ServerSocket(portNumber);
-            Socket clientSocket = serverSocket.accept();
-            PrintWriter out =
-                    new PrintWriter(clientSocket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(clientSocket.getInputStream()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Context con = getApplicationContext();
+        Intent mServiceIntent = new Intent(con, ScanNetwork.class);
+        con.startService(mServiceIntent);
     }
     public LinkedList<String[]> getClientList() {
         LinkedList<String[]> clients = new LinkedList<>();
